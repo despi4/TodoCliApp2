@@ -1,27 +1,56 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "del",
+	Short: "Delete not needed task",
+	Long: `Delete not needed task
+	For example: todo delete [id]`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete called")
+		if len(args) == 0{
+			fmt.Println("Write id task which you want to delete: todo delete 2")
+			return 
+		}
+		
+		var tasks []Task
+
+		id, err := strconv.Atoi(args[0])
+		if err != nil{
+			fmt.Println("Write id number")
+			return
+		}
+
+		data, err := os.ReadFile("tasks.json")
+		if err != nil{
+			fmt.Println("Error when read the file", err)
+			return
+		}
+
+		err = json.Unmarshal(data, &tasks)
+		if err != nil{
+			fmt.Println("Error", err)
+			return
+		}
+		
+		if len(tasks) >= id{
+			id = id - 1
+			tasks = append(tasks[:id], tasks[id+1:]...)
+			tasks = changeId(tasks, id)
+		}else{
+			fmt.Println("The list doesn not have a task with this ID")
+			return
+		}
+
+		SaveTasks(tasks)
 	},
 }
 
@@ -36,5 +65,17 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// deleteCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	deleteCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func changeId(tasks []Task, id int,) []Task{
+	for i := id; i < len(tasks); i++{
+		tasks[i]=Task{
+			Id: i+1,
+			Task: tasks[i].Task,
+			State: tasks[i].State,
+		}
+	}
+
+	return tasks
 }
